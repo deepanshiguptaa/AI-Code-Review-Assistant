@@ -1,0 +1,86 @@
+body {
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: #eef2f7;
+  margin: 0;
+}
+
+/* layout */
+.app {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* sidebar */
+.sidebar {
+  width: 240px;
+  background: #111827;
+  color: white;
+  padding: 20px;
+}
+
+.sidebar h2 {
+  font-size: 18px;
+  margin-bottom: 30px;
+}
+
+.sidebar button {
+  width: 100%;
+  background: #1f2937;
+  color: white;
+  border: none;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.sidebar button:hover {
+  background: #374151;
+}
+
+/* main */
+.main {
+  flex: 1;
+  padding: 30px;
+}
+
+/* cards */
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+}
+
+/* badges */
+.badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  color: white;
+  font-weight: bold;
+  margin-right: 8px;
+}
+
+.high { background: #dc2626; }
+.medium { background: #f59e0b; }
+.low { background: #16a34a; }
+
+/* issue row */
+.issue {
+  border-left: 4px solid #ddd;
+  padding-left: 12px;
+  margin-top: 10px;
+}
+
+.issue.high { border-color: #dc2626; }
+.issue.medium { border-color: #f59e0b; }
+.issue.low { border-color: #16a34a; }
+
+/* loader */
+.loader {
+  text-align: center;
+  margin-top: 150px;
+  font-size: 22px;
+}

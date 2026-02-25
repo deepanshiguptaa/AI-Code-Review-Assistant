@@ -17,8 +17,8 @@ export const getUserRepo = async (req, res) => {
             owner : repo.owner.login
         }));
         res.json(formattedRepos);
-    } catch(error){ 
+    } catch(error){
         console.error(error);
         res.status(500).json({ message: "Error fetching user repositories" });
-    }
+    } 
 };

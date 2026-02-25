@@ -15,4 +15,4 @@ export const getGithubAccessToken = async (code) => {
         }
     );
     return response.data.access_token;
-};
+}

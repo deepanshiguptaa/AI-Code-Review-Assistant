@@ -9,19 +9,20 @@ export const githubLogin = (req, res) =>{
 };
 
 export const githubCallback = async (req, res) => {
-    try{
+    try {
         const { code } = req.query;
-        if(!code){
-            return res.status(400).json({ message: "Code not found" });
+
+        if (!code) {
+            return res.status(400).send("Code not found");
         }
+
         const accessToken = await getGithubAccessToken(code);
-        res.json({
-            message: "GitHub login successful",
-            accessToken
-        });
-    } 
-    catch (error) {
+
+        // redirect to frontend with token
+        res.redirect(`http://localhost:5173/repos?token=${accessToken}`);
+
+    } catch (error) {
         console.error("GitHub login error:", error);
-        res.status(500).json({ message: "OAuth failed" });
+        res.status(500).send("OAuth failed");
     }
 };

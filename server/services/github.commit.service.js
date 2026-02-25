@@ -12,3 +12,4 @@ export const fetchCommits = async (accessToken, owner, repo) => {
     );
     return response.data;
 };
+
