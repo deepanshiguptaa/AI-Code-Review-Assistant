@@ -10,6 +10,7 @@ import githubRepoRoutes from './routes/github.repo.routes.js';
 import githubCommitRoutes from './routes/github.commit.routes.js';
 import githubDiffRoutes from './routes/github.diff.routes.js';
 import aiReviewRoutes from './routes/ai.review.routes.js';
+import githubWebhookRoutes from "./routes/github.webhook.routes.js";
 
 const app = express();
 connectDB();
@@ -25,6 +26,7 @@ app.use('/github', githubRepoRoutes);
 app.use('/github', githubCommitRoutes);
 app.use('/github', githubDiffRoutes);
 app.use('/ai', aiReviewRoutes);
+app.use('/github', githubWebhookRoutes);
 
 app.get("/", (req, res) => {
     res.send("AI Code Review Server is Running");
