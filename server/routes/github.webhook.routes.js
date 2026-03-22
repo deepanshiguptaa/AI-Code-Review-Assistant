@@ -1,4 +1,5 @@
 import express from "express";
+import axios from "axios";
 
 const router = express.Router();
 
@@ -7,17 +8,35 @@ router.post("/webhook", async (req, res) => {
 
     if (event === "pull_request") {
         const action = req.body.action;
-        const prNumber = req.body.pull_request?.number;
-        const repo = req.body.repository?.name;
-        const owner = req.body.repository?.owner?.login;
-
-        console.log("🚀 PR Event Detected");
-        console.log("Action:", action);
-        console.log("Repo:", repo);
-        console.log("PR Number:", prNumber);
 
         if (action === "opened" || action === "synchronize") {
-            console.log("🔥 Ready to review this PR");
+
+            const prNumber = req.body.pull_request.number;
+            const repo = req.body.repository.name;
+            const owner = req.body.repository.owner.login;
+
+            console.log("🚀 Reviewing PR:", prNumber);
+
+            try {
+                const filesResponse = await axios.get(
+                    `https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/files`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${process.env.GITHUB_TOKEN}`
+                        }
+                    }
+                );
+
+                const files = filesResponse.data;
+
+                console.log("Changed Files:");
+                files.forEach(file => {
+                    console.log("File:", file.filename);
+                });
+
+            } catch (error) {
+                console.error("Error fetching PR files:", error.message);
+            }
         }
     }
 
