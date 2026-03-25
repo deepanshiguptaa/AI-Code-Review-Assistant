@@ -1,5 +1,6 @@
 import express from "express";
 import axios from "axios";
+import { reviewCode } from "../services/ai.review.service.js";
 
 const router = express.Router();
 
@@ -21,7 +22,7 @@ router.post("/webhook", async (req, res) => {
 
             try {
 
-                // 1️⃣ Get changed files
+                // 1️⃣ Fetch PR files
                 const filesResponse = await axios.get(
                     `https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/files`,
                     {
@@ -34,36 +35,36 @@ router.post("/webhook", async (req, res) => {
 
                 const files = filesResponse.data;
 
-                console.log("Changed Files:");
-
-                let fileList = "";
+                // 2️⃣ Collect DIFF
+                let fullDiff = "";
 
                 files.forEach(file => {
+
                     console.log("File:", file.filename);
-                    fileList += `• ${file.filename}\n`;
+
+                    if (file.patch) {
+                        fullDiff += `\nFile: ${file.filename}\n${file.patch}\n`;
+                    }
+
                 });
 
-                // 2️⃣ Fake AI review for now
-                const aiReview = `
-🤖 **AI Code Review**
+                if (!fullDiff) {
+                    console.log("No diff found");
+                    return res.status(200).send("No diff");
+                }
 
-Files changed:
-${fileList}
+                // 3️⃣ Send diff to AI
+                console.log("Sending diff to AI...");
 
-Potential checks:
-• Code quality  
-• Security issues  
-• Performance problems  
+                const aiReview = await reviewCode(fullDiff);
 
-Recommendation:
-Review the changes before merging.
-`;
+                console.log("AI Review Generated");
 
-                // 3️⃣ Post comment on PR
+                // 4️⃣ Post AI comment to PR
                 await axios.post(
                     `https://api.github.com/repos/${owner}/${repo}/issues/${prNumber}/comments`,
                     {
-                        body: aiReview
+                        body: `## 🤖 AI Code Review\n\n${aiReview}`
                     },
                     {
                         headers: {
@@ -81,6 +82,7 @@ Review the changes before merging.
                     "Webhook error:",
                     error.response?.data || error.message
                 );
+
             }
         }
     }
