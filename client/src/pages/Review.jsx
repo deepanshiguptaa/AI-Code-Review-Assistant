@@ -19,90 +19,184 @@ const Review = () => {
 
   }, [owner, repo, sha]);
 
-  if (!review) return <div className="loader">🔍 Reviewing commit...</div>;
-    const high = review.issues.filter(i => i.severity === "High").length;
-    const medium = review.issues.filter(i => i.severity === "Medium").length;
-    const low = review.issues.filter(i => i.severity === "Low").length;
+  if (!review) {
+    return (
+      <div style={{
+        height: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        background: "#020617",
+        color: "white",
+        fontSize: "18px"
+      }}>
+        🔍 AI analyzing commit...
+      </div>
+    );
+  }
 
-    const total = high + medium + low;
+  const high = review.issues.filter(i => i.severity === "High").length;
+  const medium = review.issues.filter(i => i.severity === "Medium").length;
+  const low = review.issues.filter(i => i.severity === "Low").length;
 
-    // weighted risk formula
-    const riskScore = Math.min(
+  const riskScore = Math.min(
     100,
     Math.round(((high * 5) + (medium * 3) + (low * 1)) * 4)
-    );
+  );
 
-    let riskLabel = "Low Risk";
-    let riskColor = "#16a34a";
+  let riskLabel = "Low Risk";
+  let riskColor = "#16a34a";
 
-    if (riskScore > 70) {
-        riskLabel = "High Risk";
-        riskColor = "#dc2626";
-    }
-    else if (riskScore > 40) {
-        riskLabel = "Medium Risk";
-        riskColor = "#f59e0b";
-    }
+  if (riskScore > 70) {
+    riskLabel = "High Risk";
+    riskColor = "#dc2626";
+  } else if (riskScore > 40) {
+    riskLabel = "Medium Risk";
+    riskColor = "#f59e0b";
+  }
 
   return (
-    <div className="app">
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "radial-gradient(circle at top, #1e293b, #020617)",
+        color: "white",
+        padding: "50px 30px",
+        fontFamily: "system-ui"
+      }}
+    >
 
-      {/* Sidebar */}
-      <div className="sidebar">
-        <h2>AI Reviewer</h2>
-        <p><b>Repo:</b> {repo}</p>
-        <p><b>Owner:</b> {owner}</p>
-      </div>
+      <div style={{ maxWidth: "1000px", margin: "auto" }}>
 
-      {/* Main */}
-      <div className="main">
-            <div className="card">
-            <h2>Commit Risk Analysis</h2>
+        {/* Header */}
+        <div style={{ marginBottom: "35px" }}>
+          <h1 style={{ fontSize: "32px", marginBottom: "6px" }}>
+            AI Code Review
+          </h1>
 
-            <div style={{ fontSize: "26px", fontWeight: "bold", color: riskColor }}>
-                {riskScore}% — {riskLabel}
-            </div>
+          <p style={{ opacity: 0.7 }}>
+            Repository: <b>{repo}</b> • Owner: <b>{owner}</b>
+          </p>
 
-            <div style={{ marginTop: "10px" }}>
-                <span className="badge high">High: {high}</span>
-                <span className="badge medium">Medium: {medium}</span>
-                <span className="badge low">Low: {low}</span>
-            </div>
-
-            <p style={{ marginTop: "10px", color: "#64748b" }}>
-                AI evaluated this commit based on bug probability, security risks and maintainability.
-            </p>
+          <p style={{ opacity: 0.6, fontSize: "13px" }}>
+            Commit SHA: {sha.slice(0, 8)}
+          </p>
         </div>
 
-        <div className="card">
+        {/* Risk Card */}
+        <div
+          style={{
+            background: "rgba(255,255,255,0.05)",
+            backdropFilter: "blur(12px)",
+            borderRadius: "14px",
+            padding: "30px",
+            marginBottom: "25px",
+            boxShadow: "0 15px 40px rgba(0,0,0,0.5)"
+          }}
+        >
+
+          <h2 style={{ marginBottom: "10px" }}>Commit Risk Analysis</h2>
+
+          <div
+            style={{
+              fontSize: "40px",
+              fontWeight: "bold",
+              color: riskColor
+            }}
+          >
+            {riskScore}%
+          </div>
+
+          <div style={{ marginTop: "6px", fontSize: "18px", color: riskColor }}>
+            {riskLabel}
+          </div>
+
+          <div style={{ marginTop: "15px" }}>
+            <span style={{ marginRight: "12px", color: "#ef4444" }}>
+              High: {high}
+            </span>
+
+            <span style={{ marginRight: "12px", color: "#f59e0b" }}>
+              Medium: {medium}
+            </span>
+
+            <span style={{ color: "#22c55e" }}>
+              Low: {low}
+            </span>
+          </div>
+
+          <p style={{ marginTop: "12px", opacity: 0.7 }}>
+            AI evaluated this commit based on bug probability,
+            security risks and maintainability.
+          </p>
+        </div>
+
+        {/* Summary */}
+        <div
+          style={{
+            background: "rgba(255,255,255,0.05)",
+            borderRadius: "14px",
+            padding: "25px",
+            marginBottom: "25px"
+          }}
+        >
           <h2>Summary</h2>
-          <p>{review.summary}</p>
+          <p style={{ opacity: 0.8 }}>{review.summary}</p>
         </div>
 
-        <div className="card">
-          <h2>Issues</h2>
+        {/* Issues */}
+        <div
+          style={{
+            background: "rgba(255,255,255,0.05)",
+            borderRadius: "14px",
+            padding: "25px"
+          }}
+        >
+          <h2>Detected Issues</h2>
 
-          {review.issues.length === 0 && <p>No issues 🎉</p>}
+          {review.issues.length === 0 && (
+            <p style={{ marginTop: "10px" }}>No issues detected 🎉</p>
+          )}
 
           {review.issues.map((issue, index) => {
 
-            const level = issue.severity?.toLowerCase() || "low";
+            const color =
+              issue.severity === "High"
+                ? "#dc2626"
+                : issue.severity === "Medium"
+                ? "#f59e0b"
+                : "#22c55e";
 
             return (
-              <div key={index} className={`issue ${level}`}>
-                <span className={`badge ${level}`}>{issue.severity}</span>
-                <b>{issue.type}</b>
-                <p><b>File:</b> {issue.file}</p>
-                <p>{issue.message}</p>
-                <p><i>Fix: {issue.suggestion}</i></p>
+              <div
+                key={index}
+                style={{
+                  borderLeft: `4px solid ${color}`,
+                  background: "rgba(255,255,255,0.03)",
+                  padding: "18px",
+                  borderRadius: "8px",
+                  marginTop: "15px"
+                }}
+              >
+                <b style={{ color }}>{issue.severity}</b> — {issue.type}
+
+                <p style={{ marginTop: "6px", fontSize: "14px" }}>
+                  <b>File:</b> {issue.file}
+                </p>
+
+                <p style={{ marginTop: "5px" }}>
+                  {issue.message}
+                </p>
+
+                <p style={{ marginTop: "5px", opacity: 0.7 }}>
+                  💡 Fix: {issue.suggestion}
+                </p>
               </div>
             );
           })}
-
         </div>
 
       </div>
-
     </div>
   );
 };

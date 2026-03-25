@@ -10,7 +10,6 @@ const Repos = () => {
 
   useEffect(() => {
 
-    // get token from URL after login
     const tokenFromUrl = params.get("token");
 
     if (tokenFromUrl) {
@@ -28,43 +27,99 @@ const Repos = () => {
 
   }, []);
 
-    return (
-    <div style={{ padding: "40px", maxWidth: "1000px", margin: "auto" }}>
-        <h1>Select Repository</h1>
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "radial-gradient(circle at top, #1e293b, #020617)",
+        color: "white",
+        padding: "50px 30px",
+        fontFamily: "system-ui"
+      }}
+    >
+      {/* Header */}
+      <div style={{ maxWidth: "1100px", margin: "auto" }}>
+        <h1 style={{ fontSize: "36px", marginBottom: "10px" }}>
+          Select Repository
+        </h1>
 
-        <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-        gap: "20px",
-        marginTop: "30px"
-        }}>
+        <p style={{ opacity: 0.7 }}>
+          Choose a GitHub repository to analyze commits with AI.
+        </p>
 
-        {repos.map(repo => (
+        {/* Grid */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+            gap: "22px",
+            marginTop: "35px"
+          }}
+        >
+
+          {repos.map(repo => (
+
             <div
-            key={repo.id}
-            onClick={() => navigate(`/commits/${repo.owner}/${repo.name}`)}
-            style={{
-                background: "white",
-                borderRadius: "12px",
-                padding: "18px",
+              key={repo.id}
+              onClick={() => navigate(`/commits/${repo.owner}/${repo.name}`)}
+              style={{
+                background: "rgba(255,255,255,0.05)",
+                backdropFilter: "blur(10px)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: "14px",
+                padding: "20px",
                 cursor: "pointer",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                transition: "0.2s"
-            }}
-            onMouseEnter={e => e.currentTarget.style.transform = "scale(1.03)"}
-            onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+                transition: "all 0.25s ease",
+                boxShadow: "0 10px 20px rgba(0,0,0,0.3)"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-5px)";
+                e.currentTarget.style.boxShadow =
+                  "0 20px 40px rgba(0,0,0,0.5)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow =
+                  "0 10px 20px rgba(0,0,0,0.3)";
+              }}
             >
-            <h3>{repo.name}</h3>
-            <p style={{ color: "#64748b", fontSize: "14px" }}>
+
+              {/* Repo name */}
+              <h3 style={{ marginBottom: "8px" }}>
+                📦 {repo.name}
+              </h3>
+
+              {/* Owner */}
+              <p
+                style={{
+                  fontSize: "14px",
+                  opacity: 0.7,
+                  marginBottom: "10px"
+                }}
+              >
                 Owner: {repo.owner}
-            </p>
+              </p>
+
+              {/* Badge */}
+              <span
+                style={{
+                  fontSize: "12px",
+                  padding: "4px 10px",
+                  borderRadius: "6px",
+                  background: repo.private ? "#ef4444" : "#22c55e",
+                  color: "white"
+                }}
+              >
+                {repo.private ? "Private" : "Public"}
+              </span>
+
             </div>
-        ))}
+          ))}
 
         </div>
+      </div>
     </div>
-    );
-
+  );
 };
 
 export default Repos;
