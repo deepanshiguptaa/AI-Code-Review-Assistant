@@ -6,86 +6,88 @@ const router = express.Router();
 
 router.post("/webhook", async (req, res) => {
 
-  const event = req.headers["x-github-event"];
-  console.log("GitHub Event:", event);
+    const event = req.headers["x-github-event"];
 
-  try {
+    if (event === "pull_request") {
 
-    if (event !== "pull_request") {
-      return res.status(200).send("Not a PR event");
+        const action = req.body.action;
+
+        if (action === "opened" || action === "synchronize") {
+
+            const prNumber = req.body.pull_request.number;
+            const repo = req.body.repository.name;
+            const owner = req.body.repository.owner.login;
+
+            console.log("🚀 Reviewing PR:", prNumber);
+
+            try {
+
+                // 1️⃣ Fetch PR files
+                const filesResponse = await axios.get(
+                    `https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/files`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+                            Accept: "application/vnd.github+json"
+                        }
+                    }
+                );
+
+                const files = filesResponse.data;
+
+                // 2️⃣ Collect DIFF
+                let fullDiff = "";
+
+                files.forEach(file => {
+
+                    console.log("File:", file.filename);
+
+                    if (file.patch) {
+                        fullDiff += `\nFile: ${file.filename}\n${file.patch}\n`;
+                    }
+
+                });
+
+                if (!fullDiff) {
+                    console.log("No diff found");
+                    return res.status(200).send("No diff");
+                }
+
+                // 3️⃣ Send diff to AI
+                console.log("Sending diff to AI...");
+
+                const aiReview = await reviewCode(fullDiff);
+
+                console.log("AI Review Generated");
+
+                // 4️⃣ Post AI comment to PR
+                await axios.post(
+                    `https://api.github.com/repos/${owner}/${repo}/issues/${prNumber}/comments`,
+                    {
+                        body: `## 🤖 AI Code Review\n\n${aiReview}`
+                    },
+                    {
+                        headers: {
+                            Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+                            Accept: "application/vnd.github+json"
+                        }
+                    }
+                );
+
+                console.log("✅ Review posted to GitHub PR");
+
+            } catch (error) {
+
+                console.error(
+                    "Webhook error:",
+                    error.response?.data || error.message
+                );
+
+            }
+        }
     }
 
-    const action = req.body.action;
-
-    if (!["opened", "synchronize"].includes(action)) {
-      return res.status(200).send("Ignored action");
-    }
-
-    const prNumber = req.body.pull_request.number;
-    const repo = req.body.repository.name;
-    const owner = req.body.repository.owner.login;
-
-    console.log(`🚀 Reviewing PR #${prNumber} in ${owner}/${repo}`);
-
-    /* ---------------- FETCH CHANGED FILES ---------------- */
-
-    const filesResponse = await axios.get(
-      `https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/files`,
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-          Accept: "application/vnd.github+json"
-        }
-      }
-    );
-
-    const files = filesResponse.data;
-
-    let combinedDiff = "";
-
-    files.forEach(file => {
-
-      console.log("File:", file.filename);
-
-      if (file.patch) {
-        combinedDiff += `\nFile: ${file.filename}\n${file.patch}\n`;
-      }
-
-    });
-
-    /* ---------------- RUN AI REVIEW ---------------- */
-
-    const aiReview = await reviewCode(combinedDiff);
-
-    console.log("AI Review Generated");
-
-    /* ---------------- POST COMMENT ON PR ---------------- */
-
-    await axios.post(
-      `https://api.github.com/repos/${owner}/${repo}/issues/${prNumber}/comments`,
-      {
-        body: `🤖 **AI Code Review**
-
-${aiReview}`
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-          Accept: "application/vnd.github+json"
-        }
-      }
-    );
-
-    console.log("✅ Review posted to GitHub PR");
-
-  } catch (error) {
-
-    console.error("Webhook error:", error.response?.data || error.message);
-
-  }
-
-  res.status(200).send("Webhook received");
-  console.log("testing webhook");
+    res.status(200).send("Webhook received");
 });
 
 export default router;
