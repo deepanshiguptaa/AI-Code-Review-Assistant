@@ -170,7 +170,7 @@ ${fileList.map(f => `• ${f}`).join("\n")}
 
 ## 🧠 AI Summary
 
-${parsed.summary}
+${summary}
 
 ---
 
@@ -204,14 +204,17 @@ ${riskScore > 60
         /* ---------- POST COMMENT ---------- */
 
         await axios.post(
-            `https://api.github.com/repos/${owner}/${repo}/issues/${prNumber}/comments`,
-            { body: comment },
-            {
-                headers: {
-                    Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-                    Accept: "application/vnd.github+json"
-                }
-            }
+        `https://api.github.com/repos/${owner}/${repo}/statuses/${req.body.pull_request.head.sha}`,
+        {
+            state: riskScore > 60 ? "failure" : "success",
+            context: "AI Code Review",
+            description: `Risk score ${riskScore}%`,
+        },
+        {
+            headers: {
+            Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+            },
+        }
         );
 
         console.log("✅ AI review posted to PR");
