@@ -7,9 +7,24 @@ const router = express.Router();
 router.post("/webhook", async (req, res) => {
 
     const event = req.headers["x-github-event"];
+    console.log("Event received:", event);
+
+    /* ---------- HANDLE PUSH EVENTS ---------- */
+
+    if (event === "push") {
+
+        const repo = req.body.repository.name;
+        const owner = req.body.repository.owner.name || req.body.repository.owner.login;
+
+        console.log(`📦 Push detected in ${owner}/${repo}`);
+
+        return res.status(200).send("Push handled");
+    }
+
+    /* ---------- HANDLE PULL REQUEST EVENTS ---------- */
 
     if (event !== "pull_request") {
-        return res.status(200).send("Ignored event");
+        return res.status(200).send("Event ignored");
     }
 
     const action = req.body.action;
@@ -66,11 +81,14 @@ router.post("/webhook", async (req, res) => {
         try {
             aiResult = await reviewCode(diff);
         } catch (err) {
+
             console.log("AI review failed, using fallback");
+
             aiResult = JSON.stringify({
                 summary: "AI review temporarily unavailable.",
                 issues: []
             });
+
         }
 
         let parsed;
@@ -78,10 +96,12 @@ router.post("/webhook", async (req, res) => {
         try {
             parsed = JSON.parse(aiResult);
         } catch {
+
             parsed = {
                 summary: aiResult,
                 issues: []
             };
+
         }
 
         /* ---------- CALCULATE RISK ---------- */
@@ -111,6 +131,7 @@ router.post("/webhook", async (req, res) => {
         let issuesFormatted = "✅ No major issues detected.";
 
         if (parsed.issues.length > 0) {
+
             issuesFormatted = parsed.issues.map(issue => {
 
                 const icon =
@@ -127,7 +148,9 @@ ${icon} **${issue.type}** (${issue.severity})
 
 💡 Suggestion: ${issue.suggestion}
 `;
+
             }).join("\n");
+
         }
 
         /* ---------- BUILD COMMENT ---------- */
@@ -170,21 +193,19 @@ ${issuesFormatted}
 ## 💡 Recommendation
 
 ${riskScore > 60
-    ? "⚠️ Review carefully before merging."
-    : "✅ Safe to merge with minor improvements."}
+        ? "⚠️ Review carefully before merging."
+        : "✅ Safe to merge with minor improvements."}
 
 ---
 
-*Generated automatically by **AI Code Review Assistant***  
+*Generated automatically by **AI Code Review Assistant***
 `;
 
         /* ---------- POST COMMENT ---------- */
 
         await axios.post(
             `https://api.github.com/repos/${owner}/${repo}/issues/${prNumber}/comments`,
-            {
-                body: comment
-            },
+            { body: comment },
             {
                 headers: {
                     Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
