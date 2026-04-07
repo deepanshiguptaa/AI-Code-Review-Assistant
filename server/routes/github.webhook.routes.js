@@ -9,28 +9,14 @@ router.post("/webhook", async (req, res) => {
     const event = req.headers["x-github-event"];
     console.log("Event received:", event);
 
-    /* ---------- HANDLE PUSH EVENTS ---------- */
-
-    if (event === "push") {
-
-        const repo = req.body.repository.name;
-        const owner = req.body.repository.owner.name || req.body.repository.owner.login;
-
-        console.log(`📦 Push detected in ${owner}/${repo}`);
-
-        return res.status(200).send("Push handled");
-    }
-
-    /* ---------- HANDLE PULL REQUEST EVENTS ---------- */
-
     if (event !== "pull_request") {
-        return res.status(200).send("Event ignored");
+        return res.status(200).send("Ignored");
     }
 
     const action = req.body.action;
 
-    if (!["opened", "synchronize"].includes(action)) {
-        return res.status(200).send("PR action ignored");
+    if (action !== "opened" && action !== "synchronize") {
+        return res.status(200).send("Not required");
     }
 
     const prNumber = req.body.pull_request.number;
@@ -41,7 +27,7 @@ router.post("/webhook", async (req, res) => {
 
     try {
 
-        /* ---------- FETCH PR FILES ---------- */
+        /* ---------------- FETCH PR FILES ---------------- */
 
         const filesResponse = await axios.get(
             `https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/files`,
@@ -56,7 +42,7 @@ router.post("/webhook", async (req, res) => {
         const files = filesResponse.data;
 
         let diff = "";
-        const fileList = [];
+        let fileList = [];
 
         files.forEach(file => {
 
@@ -71,40 +57,25 @@ router.post("/webhook", async (req, res) => {
         console.log("Files analyzed:", fileList);
 
         if (!diff) {
-            return res.status(200).send("No diff to review");
+            return res.status(200).send("No code diff");
         }
 
-        /* ---------- RUN AI REVIEW ---------- */
+        /* ---------------- RUN AI REVIEW ---------------- */
 
-        let aiResult;
-
-        try {
-            aiResult = await reviewCode(diff);
-        } catch (err) {
-
-            console.log("AI review failed, using fallback");
-
-            aiResult = JSON.stringify({
-                summary: "AI review temporarily unavailable.",
-                issues: []
-            });
-
-        }
+        const aiResult = await reviewCode(diff);
 
         let parsed;
 
         try {
             parsed = JSON.parse(aiResult);
         } catch {
-
             parsed = {
                 summary: aiResult,
                 issues: []
             };
-
         }
 
-        /* ---------- CALCULATE RISK ---------- */
+        /* ---------------- CALCULATE RISK ---------------- */
 
         const high = parsed.issues.filter(i => i.severity === "High").length;
         const medium = parsed.issues.filter(i => i.severity === "Medium").length;
@@ -121,42 +92,34 @@ router.post("/webhook", async (req, res) => {
         if (riskScore > 70) {
             riskEmoji = "🔴";
             riskLabel = "High Risk";
-        } else if (riskScore > 40) {
+        }
+        else if (riskScore > 40) {
             riskEmoji = "🟠";
             riskLabel = "Medium Risk";
         }
 
-        /* ---------- FORMAT ISSUES ---------- */
+        /* ---------------- BUILD COMMENT ---------------- */
 
-        let issuesFormatted = "✅ No major issues detected.";
+        const issuesFormatted = parsed.issues.map(issue => {
 
-        if (parsed.issues.length > 0) {
+            const icon =
+                issue.severity === "High" ? "🔴" :
+                issue.severity === "Medium" ? "🟠" :
+                "🟢";
 
-            issuesFormatted = parsed.issues.map(issue => {
-
-                const icon =
-                    issue.severity === "High" ? "🔴" :
-                    issue.severity === "Medium" ? "🟠" :
-                    "🟢";
-
-                return `
+            return `
 ${icon} **${issue.type}** (${issue.severity})
 
-📄 File: \`${issue.file}\`
+File: \`${issue.file}\`
 
-⚠️ ${issue.message}
+${issue.message}
 
-💡 Suggestion: ${issue.suggestion}
+Suggestion: ${issue.suggestion}
 `;
-
-            }).join("\n");
-
-        }
-
-        /* ---------- BUILD COMMENT ---------- */
+        }).join("\n");
 
         const comment = `
-# 🤖 AI Code Review Report
+# 🤖 AI Code Review
 
 ### ${riskEmoji} Risk Score: **${riskScore}% — ${riskLabel}**
 
@@ -170,51 +133,50 @@ ${fileList.map(f => `• ${f}`).join("\n")}
 
 ## 🧠 AI Summary
 
-${summary}
+${parsed.summary}
 
 ---
 
 ## ⚠️ Issues Detected
 
-${issuesFormatted}
+${issuesFormatted || "✅ No major issues detected."}
 
 ---
 
 ## 📊 Issue Breakdown
 
 | Severity | Count |
-|----------|-------|
+|--------|--------|
 | 🔴 High | ${high} |
 | 🟠 Medium | ${medium} |
 | 🟢 Low | ${low} |
 
 ---
 
-## 💡 Recommendation
+### 💡 Recommendation
 
 ${riskScore > 60
-        ? "⚠️ Review carefully before merging."
-        : "✅ Safe to merge with minor improvements."}
+    ? "Review carefully before merging."
+    : "Safe to merge with minor improvements."}
 
 ---
 
-*Generated automatically by **AI Code Review Assistant***
+*Generated automatically by **AI Code Review Assistant***  
 `;
 
-        /* ---------- POST COMMENT ---------- */
+        /* ---------------- POST COMMENT ---------------- */
 
         await axios.post(
-        `https://api.github.com/repos/${owner}/${repo}/statuses/${req.body.pull_request.head.sha}`,
-        {
-            state: riskScore > 60 ? "failure" : "success",
-            context: "AI Code Review",
-            description: `Risk score ${riskScore}%`,
-        },
-        {
-            headers: {
-            Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+            `https://api.github.com/repos/${owner}/${repo}/issues/${prNumber}/comments`,
+            {
+                body: comment
             },
-        }
+            {
+                headers: {
+                    Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+                    Accept: "application/vnd.github+json"
+                }
+            }
         );
 
         console.log("✅ AI review posted to PR");
@@ -222,14 +184,13 @@ ${riskScore > 60
     } catch (error) {
 
         console.error(
-            "❌ Webhook error:",
+            "Webhook error:",
             error.response?.data || error.message
         );
 
     }
 
     res.status(200).send("Webhook processed");
-
 });
 
 export default router;
