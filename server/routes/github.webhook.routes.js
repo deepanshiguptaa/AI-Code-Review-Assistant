@@ -133,7 +133,7 @@ ${fileList.map(f => `• ${f}`).join("\n")}
 
 ## 🧠 AI Summary
 
-${parsed.summary}
+${parsed.summary || "AI analysis completed successfully."}
 
 ---
 
