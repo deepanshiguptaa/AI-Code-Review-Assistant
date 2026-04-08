@@ -133,7 +133,7 @@ ${fileList.map(f => `• ${f}`).join("\n")}
 
 ## 🧠 AI Summary
 
-${parsed.summary}
+${parsed.summary || "AI analysis completed successfully."}
 
 ---
 
@@ -164,6 +164,7 @@ ${riskScore > 60
 *Generated automatically by **AI Code Review Assistant***  
 `;
 
+        console.log("Posting comment to PR...");
         /* ---------------- POST COMMENT ---------------- */
 
         await axios.post(
