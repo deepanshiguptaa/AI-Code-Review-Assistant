@@ -15,7 +15,7 @@ router.post("/webhook", async (req, res) => {
 
     const action = req.body.action;
 
-    if (action !== "opened" && action !== "synchronize") {
+    if (!["opened", "synchronize", "reopened"].includes(action)) {
         return res.status(200).send("Not required");
     }
 
@@ -64,22 +64,29 @@ router.post("/webhook", async (req, res) => {
 
         const aiResult = await reviewCode(diff);
 
+        console.log("AI RAW RESULT:", aiResult);
+
         let parsed;
 
         try {
             parsed = JSON.parse(aiResult);
-        } catch {
+        } catch (error) {
+
+            console.log("AI response was not JSON, using fallback.");
+
             parsed = {
-                summary: aiResult,
+                summary: aiResult || "AI analysis completed successfully.",
                 issues: []
             };
         }
 
+        const issues = parsed.issues || [];
+
         /* ---------------- CALCULATE RISK ---------------- */
 
-        const high = parsed.issues.filter(i => i.severity === "High").length;
-        const medium = parsed.issues.filter(i => i.severity === "Medium").length;
-        const low = parsed.issues.filter(i => i.severity === "Low").length;
+        const high = issues.filter(i => i.severity === "High").length;
+        const medium = issues.filter(i => i.severity === "Medium").length;
+        const low = issues.filter(i => i.severity === "Low").length;
 
         const riskScore = Math.min(
             100,
@@ -98,9 +105,9 @@ router.post("/webhook", async (req, res) => {
             riskLabel = "Medium Risk";
         }
 
-        /* ---------------- BUILD COMMENT ---------------- */
+        /* ---------------- FORMAT ISSUES ---------------- */
 
-        const issuesFormatted = parsed.issues.map(issue => {
+        const issuesFormatted = issues.map(issue => {
 
             const icon =
                 issue.severity === "High" ? "🔴" :
@@ -118,6 +125,8 @@ Suggestion: ${issue.suggestion}
 `;
         }).join("\n");
 
+        /* ---------------- BUILD COMMENT ---------------- */
+
         const comment = `
 # 🤖 AI Code Review
 
@@ -127,13 +136,15 @@ Suggestion: ${issue.suggestion}
 
 ## 📂 Files Analyzed
 
-${fileList.map(f => `• ${f}`).join("\n")}
+${fileList.map(f => `• \`${f}\``).join("\n")}
 
 ---
 
 ## 🧠 AI Summary
 
-${parsed.summary || "AI analysis completed successfully."}
+${typeof parsed.summary === "string"
+    ? parsed.summary
+    : "AI analysis completed successfully."}
 
 ---
 
@@ -156,15 +167,16 @@ ${issuesFormatted || "✅ No major issues detected."}
 ### 💡 Recommendation
 
 ${riskScore > 60
-    ? "Review carefully before merging."
-    : "Safe to merge with minor improvements."}
+        ? "Review carefully before merging."
+        : "Safe to merge with minor improvements."}
 
 ---
 
-*Generated automatically by **AI Code Review Assistant***  
+*Generated automatically by **AI Code Review Assistant***
 `;
 
         console.log("Posting comment to PR...");
+
         /* ---------------- POST COMMENT ---------------- */
 
         await axios.post(
