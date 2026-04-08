@@ -164,6 +164,7 @@ ${riskScore > 60
 *Generated automatically by **AI Code Review Assistant***  
 `;
 
+        console.log("Posting comment to PR...");
         /* ---------------- POST COMMENT ---------------- */
 
         await axios.post(
