@@ -1,10 +1,14 @@
-import mongoose from "mongoose";
+// Dummy Review model for demo (MongoDB disabled)
 
-const reviewSchema = new mongoose.Schema({
-    owner: String,
-    repo: String,
-    sha: String,
-    review: Object
-}, { timestamps: true });
+const Review = {
+    async findOne() {
+        return null;
+    },
 
-export default mongoose.model("Review", reviewSchema);
+    async create(data) {
+        console.log("Review saved (demo mode):", data);
+        return data;
+    }
+};
+
+export default Review;

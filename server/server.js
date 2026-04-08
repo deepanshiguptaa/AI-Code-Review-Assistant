@@ -4,7 +4,7 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 import express from 'express';
 import cors from 'cors';
 
-import connectDB from './config/db.js';
+// import connectDB from './config/db.js';
 import githubRoutes from './routes/github.routes.js';
 import githubRepoRoutes from './routes/github.repo.routes.js';
 import githubCommitRoutes from './routes/github.commit.routes.js';
@@ -13,7 +13,7 @@ import aiReviewRoutes from './routes/ai.review.routes.js';
 import githubWebhookRoutes from "./routes/github.webhook.routes.js";
 
 const app = express();
-connectDB();
+// connectDB();
 
 app.use(cors());
 app.use(express.json());
