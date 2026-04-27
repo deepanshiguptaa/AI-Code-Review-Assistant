@@ -20,7 +20,7 @@ const Repos = () => {
     const token = localStorage.getItem("token");
 
     api.get("/github/repos", {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: `token ${token}` }
     })
     .then(res => setRepos(res.data))
     .catch(err => console.log(err));
