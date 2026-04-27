@@ -19,7 +19,7 @@ app.use(cors());
 app.use(express.json());
 
 // OAuth
-app.use('/auth/github', githubRoutes);
+app.use('/api/github', githubRoutes);
 
 // All GitHub APIs grouped
 app.use('/github', githubRepoRoutes);
