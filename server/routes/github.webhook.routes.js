@@ -4,7 +4,7 @@ import { reviewCode } from "../services/ai.review.service.js";
 
 const router = express.Router();
 
-router.post("/api/github/webhook", async (req, res) => {
+router.post("/webhook", async (req, res) => {
 
     const event = req.headers["x-github-event"];
     console.log("Event received:", event);
