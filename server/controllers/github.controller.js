@@ -17,9 +17,10 @@ export const githubCallback = async (req, res) => {
         }
 
         const accessToken = await getGithubAccessToken(code);
+        const FRONTEND_URL = process.env.FRONTEND_URL;
 
         // redirect to frontend with token
-        res.redirect(`http://localhost:5173/repos?token=${accessToken}`);
+        res.redirect(`${FRONTEND_URL}/repos?token=${accessToken}`);
 
     } catch (error) {
         console.error("GitHub login error:", error);
