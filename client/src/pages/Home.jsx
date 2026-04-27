@@ -1,7 +1,7 @@
 const Home = () => {
 
   const login = () => {
-    window.location.href = "http://localhost:5000/auth/github/login";
+    window.location.href = "https://ai-code-review-assistant-7xl9.onrender.com/auth/github/login";
   };
 
   return (
