@@ -26,7 +26,7 @@ app.use('/github', githubRepoRoutes);
 app.use('/github', githubCommitRoutes);
 app.use('/github', githubDiffRoutes);
 app.use('/ai', aiReviewRoutes);
-app.use('/github', githubWebhookRoutes);
+app.use('/api/github', githubWebhookRoutes);
 
 app.get("/", (req, res) => {
     res.send("AI Code Review Server is Running");
